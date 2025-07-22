@@ -1,0 +1,1 @@
+export { restaurantRouter } from './restaurantMenuItem.routes';

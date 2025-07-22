@@ -1,0 +1,1 @@
+export { rroomsProperty } from './rrooms-property.router';

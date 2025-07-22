@@ -1,0 +1,1 @@
+export { moduleConfigRouter } from './module-config.router';

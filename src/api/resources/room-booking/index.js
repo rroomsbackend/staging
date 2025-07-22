@@ -1,0 +1,1 @@
+export { roomBooking } from './booking.router';

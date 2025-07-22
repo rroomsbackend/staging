@@ -1,0 +1,1 @@
+export { restaurantBookingRouter } from './restuarentTableBooking.routes';
