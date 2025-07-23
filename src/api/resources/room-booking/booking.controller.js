@@ -710,72 +710,74 @@ export default {
                     if (guestDetails && guestDetails.length > 0) {
                         let itemsParams = [];
                         guestDetails.forEach(element => {
-                            itemsParams.push({ name: element.name, age: element.age, gender: element.gender, document_number: element.document_number, document_type: element.document_type, bookedId: result.id })
+                            itemsParams.push({ name: element.name, age: element.age, gender: element.gender, document_number: element.document_number, document_type: element.document_type, roomNo: element.roomNo, bookedId: result.id })
                         });
                         await db.GuestDetails.bulkCreate(itemsParams).then().catch(err => {
                             return res.status(500).json({ 'error': JSON.stringify(err) });
                         });
                     }
                     /////////////////////////////////////////////////////////////////////////
-                    // if (bookingStatus === 0) {
-                    //     setImmediate(async () => {
-                    // try {
-                    // const [getUser, getProperty] = await Promise.all([
-                    //     db.User.findOne({ where: { id: userId } }),
-                    //     db.PropertyMaster.findOne({ where: { id: propertyId } })
-                    // ]);
-                    // const getInitiator = await db.RroomsUser.findOne({ where: { id: getProperty.createdBy } })
-                    // let getTax = parseInt(bookingAmout) - parseInt(discountAmount);
-                    // let paymentModesForPayAtHotel = [0, 2, 3, 4, 5, 6, 7];
-                    // let paymentModeName = (PaymentStatus == 0 && paymentMode == 0) || paymentModesForPayAtHotel.includes(paymentMode)
-                    //     ? 'Pay at Hotel'
-                    //     : PaymentStatus == 1 && paymentMode == 1
-                    //         ? "Prepaid"
-                    //         : PaymentStatus == 0 && paymentMode == 1
-                    //             ? "Partial Pay"
-                    //             : 'Unknown Payment Mode';
-                    // const bookingDetails = {
-                    //     guestName: otherPersonName || getUser?.name,
-                    //     guestMobile: otherPersonNumber || getUser?.mobile,
-                    //     bookingId: bookingCode,
-                    //     hotelCode: getProperty?.propertyCode,
-                    //     hotelName: getProperty?.name,
-                    //     hotelOwner: getProperty?.ownerFirstName + " " + getProperty?.ownerLastName,
-                    //     hotelAddress: getProperty?.address,
-                    //     hotelLandmark: getProperty?.landmark,
-                    //     hotelEmail: getProperty?.propertyEmailId,
-                    //     hotelPhone: getProperty?.propertyMobileNumber,
-                    //     hotelLocality: getProperty?.locality,
-                    //     checkInDate: fromDate,
-                    //     checkOutDate: toDate,
-                    //     roomNights: noOfRooms,
-                    //     checkInTime: moment(fromDate).format('DD-MM-YYYY'),
-                    //     checkOutTime: moment(toDate).format('DD-MM-YYYY'),
-                    //     bookingAmout, amountBreakup: `Total: ${bookingAmout}, Collected: ${collectedPayment}, Due: ${dueAmount}`,
-                    //     balanceAmount: dueAmount, paymentLink: 'Payment Link',
-                    //     checkInDateTime: moment(checkInDateTime).tz('Asia/Kolkata').format('hh:mm A'),
-                    //     checkOutDateTime: moment(checkOutDateTime).tz('Asia/Kolkata').format('hh:mm A'),
-                    //     commissionBreakup: 'Commission Details',
-                    //     paymentMode, noOfRooms, adults, children,
-                    //     PaymentStatus, bookingStatus, otherPersonName, otherPersonNumber,
-                    //     otaBookingId, tax: getTax, cuponCode, discountAmount,
-                    //     bookingPolicy: getProperty?.bookingPolicy,
-                    //     RoomsCategoryId: propertyRoomsCategoryId,
-                    //     paymentModeName
-                    // };
-                    // await Promise.allSettled([
-                    //     sendBookingConfirmationGuest(getUser?.email || 'guest@yopmail.com', bookingDetails),
-                    //     sendBookingConfirmationProperty(getProperty?.propertyEmailId || 'property@yopmail.com', bookingDetails),
-                    //     sendBookingConfirmationProperty(getInitiator?.email || 'initiator@yopmail.com', bookingDetails),
-                    //     sendBookingConfirmationRrooms('rrooms.in@gmail.com', bookingDetails)
-                    // ]).then(() => {
-                    //     console.log("All emails processed");
-                    // });
-                    // } catch (err) {
-                    //     console.error("Email sending error:", err);
-                    // }
-                    //     });
-                    // }
+                    if (result.source?.toUpperCase() == "RROOMS" &&
+                        result.referenceName != "" &&
+                        result.referenceName != null) {
+                        setImmediate(async () => {
+                            try {
+                                const [getUser, getProperty] = await Promise.all([
+                                    db.User.findOne({ where: { id: userId } }),
+                                    db.PropertyMaster.findOne({ where: { id: propertyId } })
+                                ]);
+                                const getInitiator = await db.RroomsUser.findOne({ where: { id: getProperty.createdBy } })
+                                let getTax = parseInt(bookingAmout) - parseInt(discountAmount) ?? 0;
+                                let paymentModesForPayAtHotel = [0, 2, 3, 4, 5, 6, 7];
+                                let paymentModeName = (PaymentStatus == 0 && paymentMode == 0) || paymentModesForPayAtHotel.includes(paymentMode)
+                                    ? 'Pay at Hotel'
+                                    : PaymentStatus == 1 && paymentMode == 1
+                                        ? "Prepaid"
+                                        : PaymentStatus == 0 && paymentMode == 1
+                                            ? "Partial Pay"
+                                            : 'Unknown Payment Mode';
+                                const bookingDetails = {
+                                    guestName: otherPersonName || getUser?.name,
+                                    guestMobile: otherPersonNumber || getUser?.mobile,
+                                    bookingId: bookingCode,
+                                    hotelCode: getProperty?.propertyCode,
+                                    hotelName: getProperty?.name,
+                                    hotelOwner: getProperty?.ownerFirstName + " " + getProperty?.ownerLastName,
+                                    hotelAddress: getProperty?.address,
+                                    hotelLandmark: getProperty?.landmark,
+                                    hotelEmail: getProperty?.propertyEmailId,
+                                    hotelPhone: getProperty?.propertyMobileNumber,
+                                    hotelLocality: getProperty?.locality,
+                                    checkInDate: fromDate,
+                                    checkOutDate: toDate,
+                                    roomNights: noOfRooms,
+                                    checkInTime: moment(fromDate).format('DD-MM-YYYY'),
+                                    checkOutTime: moment(toDate).format('DD-MM-YYYY'),
+                                    bookingAmout, amountBreakup: `Total: ${bookingAmout}, Collected: ${collectedPayment}, Due: ${dueAmount}`,
+                                    balanceAmount: dueAmount, paymentLink: 'Payment Link',
+                                    checkInDateTime: moment(checkInDateTime).tz('Asia/Kolkata').format('hh:mm A'),
+                                    checkOutDateTime: moment(checkOutDateTime).tz('Asia/Kolkata').format('hh:mm A'),
+                                    commissionBreakup: 'Commission Details',
+                                    paymentMode, noOfRooms, adults, children,
+                                    PaymentStatus, bookingStatus, otherPersonName, otherPersonNumber,
+                                    otaBookingId, tax: getTax, cuponCode, discountAmount,
+                                    bookingPolicy: getProperty?.bookingPolicy,
+                                    RoomsCategoryId: propertyRoomsCategoryId,
+                                    paymentModeName
+                                };
+                                await Promise.allSettled([
+                                    // sendBookingConfirmationGuest(getUser?.email || 'guest@yopmail.com', bookingDetails),
+                                    // sendBookingConfirmationProperty(getInitiator?.email || 'initiator@yopmail.com', bookingDetails),
+                                    sendBookingConfirmationProperty(getProperty?.propertyEmailId || 'property@yopmail.com', bookingDetails),
+                                    sendBookingConfirmationRrooms('rrooms.in@gmail.com', bookingDetails)
+                                ]).then(() => {
+                                    console.log("All emails processed");
+                                });
+                            } catch (err) {
+                                console.error("Email sending error:", err);
+                            }
+                        });
+                    }
                     ////////////////////////////////////////////////////////////////////////
                     return res.status(200).json({ status: true, message: "Booked successfully", data: result });
                 }
@@ -791,7 +793,9 @@ export default {
         try {
             const { data } = req.body;
             const booking = data.Reservations.Reservation[0].BookingTran[0];
-            const status = booking.Status;
+            const status = booking?.Status;
+            const guestEmail = booking?.Email
+            console.log(guestEmail);
             if (!booking || !data.Reservations.Reservation[0]) {
                 return res.status(400).json({ success: false, message: "Invalid response structure." });
             }
@@ -801,10 +805,6 @@ export default {
             if (!property) return res.status(404).json({ success: false, message: "Property not found." });
             if (status === "New") {
                 const bookingCode = "RRO" + Math.floor(100000 + Math.random() * 900000).toString();
-                // const property = await db.PropertyMaster.findOne({
-                //     where: { locationId: data.Reservations.Reservation[0].LocationId },
-                // });
-                // if (!property) return res.status(404).json({ success: false, message: "Property not found." });
                 const payload = {
                     bookingCode: bookingCode,
                     propertyId: property.id,
@@ -853,6 +853,65 @@ export default {
                     referenceName: data.Reservations.Reservation[0].Source,
                 };
                 await db.BookingHotel.create(payload);
+                setImmediate(async () => {
+                    try {
+                        const [getProperty] = await Promise.all([
+                            db.PropertyMaster.findOne({ where: { id: payload.propertyId } })
+                        ]);
+                        const getInitiator = await db.RroomsUser.findOne({ where: { id: getProperty.createdBy } })
+                        let getTax = parseInt(payload.bookingAmout) ?? 0;
+                        let paymentModesForPayAtHotel = [0, 2, 3, 4, 5, 6, 7];
+                        let paymentModeName = (payload.PaymentStatus == 0 && payload.paymentMode == 0) || paymentModesForPayAtHotel.includes(payload.paymentMode)
+                            ? 'Pay at Hotel'
+                            : payload.PaymentStatus == 1 && payload.paymentMode == 1
+                                ? "Prepaid"
+                                : payload.PaymentStatus == 0 && payload.paymentMode == 1
+                                    ? "Partial Pay"
+                                    : 'Unknown Payment Mode';
+                        const bookingDetails = {
+                            guestName: payload?.otherPersonName || "",
+                            guestMobile: payload.otherPersonNumber || "",
+                            bookingId: bookingCode,
+                            hotelCode: getProperty?.propertyCode,
+                            hotelName: getProperty?.name,
+                            hotelOwner: getProperty?.ownerFirstName + " " + getProperty?.ownerLastName,
+                            hotelAddress: getProperty?.address,
+                            hotelLandmark: getProperty?.landmark,
+                            hotelEmail: getProperty?.propertyEmailId,
+                            hotelPhone: getProperty?.propertyMobileNumber,
+                            hotelLocality: getProperty?.locality,
+                            checkInDate: payload.fromDate,
+                            checkOutDate: payload.toDate,
+                            roomNights: payload.noOfRooms,
+                            checkInTime: moment(payload.fromDate).format('DD-MM-YYYY'),
+                            checkOutTime: moment(payload.toDate).format('DD-MM-YYYY'),
+                            bookingAmout: payload.bookingAmout, amountBreakup: `Total: ${payload.bookingAmout}, Collected: ${payload.collectedPayment}, Due: ${payload.dueAmount}`,
+                            balanceAmount: payload.dueAmount, paymentLink: 'Payment Link',
+                            checkInDateTime: "12:00 PM", //
+                            checkOutDateTime: "11:00 AM",//
+                            commissionBreakup: 'Commission Details',
+                            paymentMode: payload.paymentMode, noOfRooms: payload.noOfRooms, adults: payload.adults, children: payload.childrens,
+                            PaymentStatus: payload.PaymentStatus, bookingStatus: payload.bookingStatus, otherPersonName: payload.otherPersonName, otherPersonNumber: payload.otherPersonNumber,
+                            otaBookingId: payload.otaBookingId, tax: getTax, cuponCode: null, discountAmount: null,
+                            bookingPolicy: getProperty?.bookingPolicy,
+                            RoomsCategoryId: payload.propertyRoomsCategoryId,
+                            paymentModeName
+                        };
+                        const specialHotelIds = [9, 11, 5, 40, 12, 8, 42, 41];
+                        const rroomsEmail = specialHotelIds.includes(propertyDetails?.id)
+                            ? 'bookinggroup@rrooms.in'
+                            : 'rrooms.in@gmail.com';
+                        await Promise.allSettled([
+                            sendBookingConfirmationGuest(guestEmail || 'guest@yopmail.com', bookingDetails),
+                            sendBookingConfirmationProperty(getProperty?.propertyEmailId || 'property@yopmail.com', bookingDetails),
+                            sendBookingConfirmationRrooms(rroomsEmail || 'rrooms.admin@yopmail.com', bookingDetails)
+                        ]).then(() => {
+                            console.log("All emails processed");
+                        });
+                    } catch (err) {
+                        console.error("Email sending error:", err);
+                    }
+                });
                 return res.status(200).json({ success: true, message: "New booking created." });
             } else if (status === "Modify") {
                 const record = await db.BookingHotel.findOne({
@@ -912,7 +971,7 @@ export default {
                 await record.update({ bookingStatus: 4 });
                 return res.status(200).json({ success: true, message: "Booking cancelled." });
             } else {
-                return res.status(400).json({ success: false, message: "Unknown status." });
+                return res.status(200).json({ success: false, message: "Unknown status." });
             }
         } catch (error) {
             console.error("Reservation Sync Error:", error);
@@ -1334,11 +1393,15 @@ export default {
                             bookingPolicy: propertyDetails?.bookingPolicy || ''
                         };
                         if (bookingDetails?.source == 'RRooms') {
+                            const specialHotelIds = [9, 11, 5, 40, 12, 8, 42, 41];
+                            const rroomsEmail = specialHotelIds.includes(propertyDetails?.id)
+                                ? 'bookinggroup@rrooms.in'
+                                : 'rrooms.in@gmail.com';
                             setImmediate(async () => {
                                 await Promise.allSettled([
                                     sendBookingCancelGuest(guestEmail, bookingDetail),
                                     sendBookingCancelProperty(propertyDetails?.propertyEmailId || 'property@yopmail.com', bookingDetail),
-                                    sendBookingCancelRrooms('rrooms.in@gmail.com', bookingDetail)
+                                    sendBookingCancelRrooms(rroomsEmail, bookingDetail)
                                 ]).then(() => {
                                     console.log("All emails processed");
                                 });
@@ -1576,19 +1639,23 @@ export default {
                             discountAmount: bookingDetailss?.get('discountAmount') || '',
                             bookingPolicy: propertyDetails?.bookingPolicy || ''
                         };
-                        if (bookingDetailss?.get('source') == "RRooms") {
+                        if (bookingDetailss?.get('source')?.toUpperCase() == "RROOMS") {
+                            const specialHotelIds = [9, 11, 5, 40, 12, 8, 42, 41];
+                            const rroomsEmail = specialHotelIds.includes(propertyDetails?.id)
+                                ? 'bookinggroup@rrooms.in'
+                                : 'rrooms.in@gmail.com';
                             setImmediate(async () => {
                                 await Promise.allSettled([
                                     sendBookingNoShowGuest(guestEmail, bookingDetail),
                                     sendBookingNoShowProperty(propertyDetails?.propertyEmailId || 'property@yopmail.com', bookingDetail),
-                                    sendBookingNoShowRrooms('rrooms.in@gmail.com', bookingDetail)
+                                    sendBookingNoShowRrooms(rroomsEmail, bookingDetail)
                                 ]).then(() => {
                                     console.log("All emails processed");
                                 });
                             });
                         }
                     }
-                }                
+                }
                 return res.status(200).json({ status: true, msg: "Booking status updated successfully" });
             }
             else
@@ -1689,7 +1756,7 @@ export default {
                     if (guestDetails && guestDetails.length > 0) {
                         let itemsParams = [];
                         guestDetails.forEach(element => {
-                            itemsParams.push({ name: element.name, age: element.age, gender: element.gender, document_number: document_number, document_type: document_type, bookedId: req.params.id })
+                            itemsParams.push({ name: element.name, age: element.age, gender: element.gender, document_number: document_number, document_type: document_type, bookedId: req.params.id, roomNo: element.roomNo })
                         });
                         db.GuestDetails.bulkCreate(itemsParams);
                     }
@@ -2009,7 +2076,7 @@ export default {
                 },
                 // { model: db.GuestDetails, required: false, attributes: ["id", "bookedId", "name", "age", "gender", "document_number", "document_type"]}
             ],
-            attributes: ['id', 'propertyId', 'bookingCode', 'userId', 'propertyRoomsCategoryId', 'fromDate', 'toDate', 'noOfRooms', 'adults', 'children', 'paymentMode', 'paymentStatus', 'bookingStatus', 'bookingAmout', 'bookForOther', 'otherPersonName', 'otherPersonNumber', 'source', 'assignRoomNo', 'assignRoomDetailsId', 'reason', 'collectedPayment', 'dueAmount', 'otaBookingId', 'checkInDateTime', 'checkOutDateTime', 'breakFast', 'extraCharge1', 'extraCharge2', 'extraCharge3', 'extraCharge4', 'extraCharge5', 'room1', 'room2', 'room3', 'room4', 'room5', 'remark', 'totalFoodAmount', 'foodDiscountPercentage', 'dueFoodAmount', 'collectedFoodAmout', 'useWalletAmount', 'discountAmount', 'cancelledBy', 'platform', 'totalFoodDiscountAmount', 'discountOnFood', 'totalFoodAmountBeforeGST', 'bookingTransfered'],
+            attributes: ['id', 'propertyId', 'bookingCode', 'userId', 'propertyRoomsCategoryId', 'fromDate', 'toDate', 'noOfRooms', 'adults', 'children', 'paymentMode', 'paymentStatus', 'bookingStatus', 'bookingAmout', 'bookForOther', 'otherPersonName', 'otherPersonNumber', 'source', 'assignRoomNo', 'assignRoomDetailsId', 'reason', 'collectedPayment', 'dueAmount', 'otaBookingId', 'checkInDateTime', 'checkOutDateTime', 'breakFast', 'extraCharge1', 'extraCharge2', 'extraCharge3', 'extraCharge4', 'extraCharge5', 'room1', 'room2', 'room3', 'room4', 'room5', 'remark', 'totalFoodAmount', 'foodDiscountPercentage', 'dueFoodAmount', 'collectedFoodAmout', 'useWalletAmount', 'discountAmount', 'cancelledBy', 'platform', 'totalFoodDiscountAmount', 'discountOnFood', 'totalFoodAmountBeforeGST', 'bookingTransfered', 'createdAt', 'referenceName'],
             order: [
                 ['id', 'DESC'],
                 ['updatedAt', 'DESC']
@@ -2017,7 +2084,7 @@ export default {
             where: { id: id }
         }
         const selector = Object.assign({}, propertySelection);
-        const guests = await db.GuestDetails.findAll({ where: { bookedId: id }, attributes: ["id", "bookedId", "name", "age", "gender", "document_number", "document_type"] })
+        const guests = await db.GuestDetails.findAll({ where: { bookedId: id }, attributes: ["id", "bookedId", "name", "age", "gender", "document_number", "document_type", "roomNo"] })
         db.BookingHotel.findOne(selector)
             .then(result => {
                 const booking = result?.toJSON?.() || result;
@@ -2167,7 +2234,6 @@ export default {
         const filter = {
             propertyId: id
         }
-
         if (fromDate && toDate) {
             filter['createdAt'] = {
                 [Op.between]: [moment(fromDate).format('YYYY-MM-DD'), moment(toDate).format('YYYY-MM-DD')]
@@ -2563,10 +2629,11 @@ export default {
             gender,
             bookedId,
             document_number,
+            roomNo,
             document_type
         } = req.body;
         let itemsParams = [];
-        itemsParams.push({ name: name, age: age, gender: gender, bookedId: bookedId, document_number: document_number, document_type: document_type })
+        itemsParams.push({ name: name, age: age, gender: gender, bookedId: bookedId, document_number: document_number, document_type: document_type, roomNo: roomNo })
         db.GuestDetails.bulkCreate(itemsParams).then(result => {
             if (result) {
                 return res.status(200).json({ status: true, msg: 'Guest added successfully' });
@@ -2807,7 +2874,6 @@ export default {
             const worksheet = workbook.addWorksheet('Payment Collection Report');
             worksheet.columns = [
                 { header: 'Property Name', key: 'propertyName', width: 25 },
-                // { header: 'Booking ID', key: 'bookedId', width: 20 },
                 { header: 'Booking Code', key: 'bookingCode', width: 15 },
                 { header: 'Source', key: 'source', width: 12 },
                 { header: 'Room Number', key: 'roomNumber', width: 16 },
@@ -2840,15 +2906,12 @@ export default {
                 });
             });
             worksheet.addRow({});
-            // Add an empty row for spacing
             worksheet.addRow({});
-            // Add a row where Total will be displayed
             const totalRowNumber = worksheet.lastRow.number + 1;
             worksheet.mergeCells(`A${totalRowNumber}:E${totalRowNumber}`); // Merge A to E
             worksheet.getCell(`A${totalRowNumber}`).value = 'Total';
             worksheet.getCell(`A${totalRowNumber}`).font = { bold: true };
             worksheet.getCell(`A${totalRowNumber}`).alignment = { horizontal: 'center' };
-            // Set total in column G (paymentAmount column)
             worksheet.getCell(`F${totalRowNumber}`).value = totalAmount;
             worksheet.getCell(`F${totalRowNumber}`).font = { bold: true };
             worksheet.getRow(1).eachCell(cell => {
@@ -2866,10 +2929,6 @@ export default {
                 from: 'A1',
                 to: 'I1',
             };
-            // worksheet.addRow({
-            //     guestName: 'Total',
-            //     paymentAmount: totalAmount
-            // });
             res.setHeader(
                 'Content-Type',
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -2880,7 +2939,6 @@ export default {
             );
             await workbook.xlsx.write(res);
             res.end();
-            // res.status(200).json({ status: false, data: data });
         } catch (error) {
             console.error('Excel export error:', error);
             res.status(500).json({ status: false, message: 'Internal server error' });
@@ -3324,7 +3382,6 @@ export default {
                 `attachment; filename="BookingAuditTrail_${propertyName.replace(/\s+/g, '_')}.pdf"`
             );
             doc.pipe(res);
-            // Header Section
             doc
                 .fontSize(14)
                 .fillColor('#000080')
@@ -3339,7 +3396,6 @@ export default {
             doc.moveTo(doc.page.margins.left, doc.y)
                 .lineTo(doc.page.width - doc.page.margins.right, doc.y)
                 .stroke();
-            // Body Section
             if (!logs.length) {
                 doc.moveDown().text('No booking logs found for the selected date range.');
             } else {
@@ -3351,41 +3407,34 @@ export default {
                         .fillColor('#000')
                         .font('Helvetica-Bold')
                         .text(`Res. No: ${resCounter++}   Booking ID: ${bookingId}`, doc.page.margins.left);
-
                     doc.moveDown(0.3);
                     logsPerBooking.forEach((log) => {
                         const logDate = new Date(log.createdAt);
                         const dateStr = logDate.toLocaleDateString();
                         const timeStr = logDate.toLocaleTimeString();
-                        // Operation Header
                         doc
                             .fontSize(10)
                             .font('Helvetica-Bold')
                             .text(`Operation : ${log.activityType || 'N/A'}`, doc.page.margins.left);
-                        // Meta Info
                         doc
                             .font('Helvetica')
                             .text(`Guest: ${log.actionBy || 'N/A'}`, { continued: true })
                             .text(`   User: ${log.userType || 'N/A'}`, { continued: true })
                             .text(`   Date: ${dateStr}`, { continued: true })
                             .text(`   Time: ${timeStr}`);
-                        // Action
                         if (log.action) {
                             doc.font('Helvetica-Bold').text('Particular : ', { continued: true });
                             doc.font('Helvetica').text(log.action);
                         }
-                        // Payment Mode
                         if (log.paymentMode) {
                             doc.font('Helvetica-Bold').text('Payment Mode : ', { continued: true });
                             doc.font('Helvetica').text(log.paymentMode);
                         }
-                        // Remark
                         if (log.remark) {
                             doc.font('Helvetica-Bold').text('Remark : ', { continued: true });
                             doc.font('Helvetica').text(log.remark);
                         }
                         doc.moveDown(0.3);
-                        // Draw full-width dashed separator line
                         const separatorY = doc.y;
                         doc
                             .moveTo(doc.page.margins.left, separatorY)
@@ -3393,7 +3442,6 @@ export default {
                             .dash(2, { space: 2 })
                             .stroke()
                             .undash();
-                        // Ensure space after the line before next content
                         doc.moveDown(0.5);
                     });
                 }
@@ -3439,7 +3487,6 @@ export default {
                 `attachment; filename="KitchenAuditTrail_${propertyName.replace(/\s+/g, '_')}.pdf"`
             );
             doc.pipe(res);
-            // Header Section
             doc
                 .fontSize(14)
                 .fillColor('#000080')
@@ -3454,7 +3501,6 @@ export default {
             doc.moveTo(doc.page.margins.left, doc.y)
                 .lineTo(doc.page.width - doc.page.margins.right, doc.y)
                 .stroke();
-            // Body Section
             if (!logs.length) {
                 doc.moveDown().text('No kitchen logs found for the selected date range.');
             } else {
@@ -3469,21 +3515,17 @@ export default {
                         .fillColor('#000')
                         .text(`Res. No: ${resCounter++}   Order ID: ${log.bookingCode || 'N/A'}`, doc.page.margins.left);
                     doc.moveDown(0.3);
-                    // Operation Header
                     doc.fontSize(10).font('Helvetica-Bold')
                         .text(`Operation : ${log.operation || 'N/A'}`, doc.page.margins.left);
-                    // Meta Info
                     doc.font('Helvetica')
                         .text(`Guest: ${log.actionBy || 'N/A'}`, { continued: true })
-                        .text(`   User: propertyUser`, { continued: true }) // hardcoded as seen in screenshot
+                        .text(`   User: propertyUser`, { continued: true })
                         .text(`   Date: ${dateStr}`, { continued: true })
                         .text(`   Time: ${timeStr}`);
-                    // Action
                     if (log.action) {
                         doc.font('Helvetica-Bold').text('Particular : ', { continued: true });
                         doc.font('Helvetica').text(log.action);
                     }
-                    // Dashed Separator
                     doc.moveDown(0.5);
                     const separatorY = doc.y;
                     doc.moveTo(doc.page.margins.left, separatorY)
@@ -3541,7 +3583,6 @@ export default {
         const endDate = moment(new Date(toDate)).format('YYYY-MM-DD')
         let where = {}
         const orCondition = []
-
         if (mobile) {
             orCondition.push({
                 otherPersonNumber: {
@@ -3549,7 +3590,6 @@ export default {
                 }
             })
         }
-
         if (name) {
             orCondition.push({
                 otherPersonName: {
@@ -3557,7 +3597,6 @@ export default {
                 }
             })
         }
-
         if (bookingCode) {
             orCondition.push({
                 bookingCode: {
@@ -3565,13 +3604,11 @@ export default {
                 }
             })
         }
-
         if (propertyId) {
             where = {
                 propertyId: propertyId,
             }
         }
-
         if (fromDate && toDate) {
             where['fromDate'] = {
                 [Op.between]: [moment(new Date(startDate)).format('YYYY-MM-DD'), moment(new Date(endDate)).format('YYYY-MM-DD')]
@@ -3585,11 +3622,9 @@ export default {
                 [Op.lte]: moment(new Date(endDate)).format('YYYY-MM-DD')
             }
         }
-
         if (orCondition?.length > 0) {
             where[Op.or] = orCondition
         }
-
         const selection = {
             attributes: ['id', 'bookingCode', 'adults', 'source', 'checkInDateTime', 'checkOutDateTime', 'noOfRooms', 'bookingAmout', 'totalFoodAmount', 'collectedFoodAmout', 'dueAmount', 'breakFast', 'paymentMode', 'bookingStatus', 'createdAt', 'otherPersonName', 'otherPersonNumber', 'assignRoomNo', 'fromDate', 'toDate', 'propertyId', 'userId'],
             where: [where],
@@ -3599,15 +3634,12 @@ export default {
             include: [
                 {
                     model: db.User,
-                    // as: "user",
                     attributes: ['id', 'name', 'email', 'mobile']
                 },
-                { model: db.GuestDetails, attributes: ["id", "bookedId", "name", "age", "gender", "document_number", "document_type"] }
+                { model: db.GuestDetails, attributes: ["id", "bookedId", "name", "age", "gender", "document_number", "document_type", "roomNo"] }
             ]
         }
-
         const { count, rows } = await db.BookingHotel.findAndCountAll(selection);
-
         return res.status(200).json({
             data: rows, status: true, message: "Guest list fetched successfully",
             pagination: {
@@ -3616,20 +3648,7 @@ export default {
                 totalRecords: count,
                 totalPages: Math.ceil(count / limit),
             }
-        });
-
-        // db.BookingHotel.findAll(selection).then(result => {
-        //     return res.status(200).json({
-        //         data: result, status: true, message: "Guest list fetched successfully", pagination: {
-        //             currentPage: pageNumber,
-        //             pageSize: limit,
-        //             totalRecords: count,
-        //             totalPages: Math.ceil(count / limit),
-        //         }
-        //     });
-        // }).catch(error => {
-        //     res.status(400).json({ status: false, message: error.message });
-        // })
+        })
     },
 
     // release room old logic
@@ -3749,40 +3768,9 @@ export default {
         const {
             propertyId,
             propertyRoomsCategoryId,
-            // userId,
-            // fromDate,
-            // toDate,
-            // noOfRooms,
-            // adults,
-            // children,
-            // paymentMode,
-            // PaymentStatus,
-            // bookingStatus,
-            // bookingAmout,
-            // checkInDateTime,
-            // checkOutDateTime,
-            // bookForOther,
-            // otherPersonName,
-            // otherPersonNumber,
-            // source,
-            // collectedPayment,
-            // dueAmount,
-            // otaBookingId,
-            // referenceName,
             guestDetails,
-            // breakFast,
-            // extraCharge1,
-            // extraCharge2,
-            // bookingHours,
-            // totalFoodAmount,
-            // collectedFoodAmout,
-            // useWalletAmount,
-            // cuponCode,
-            // discountAmount,
             platform,
             remark,
-            // shiftedTo,
-            // oldBookingStatus,
             bookingTransfered,
             cidAmount,
             reasonForShifting
@@ -3790,7 +3778,6 @@ export default {
         try {
             const oldBooking = await db.BookingHotel.findOne({
                 where: { id: bookingTransfered },
-                // include: [{ model: db.PropertyMaster }]
             });
             await db.BookingHotel.update(
                 { remark, shiftedTo: propertyId, bookingStatus: 6, cidAmount: cidAmount, reasonForShifting: reasonForShifting },
@@ -3843,6 +3830,7 @@ export default {
                         gender: g.gender,
                         document_number: g.document_number,
                         document_type: g.document_type,
+                        roomNo: g.roomNo,
                         bookedId: newBooking.id
                     }));
                     await db.GuestDetails.bulkCreate(guestParams);
@@ -3905,7 +3893,6 @@ export default {
                         cidAmount: cidAmount,
                         reasonForShifting: reasonForShifting
                     };
-                    // Send emails
                     await Promise.allSettled([
                         // sendBookingConfirmationGuest(getUser?.email || 'guest@yopmail.com', bookingDetails),
                         sendBookingConfirmationProperty(newProperty?.propertyEmailId || 'property@yopmail.com', bookingDetails),
@@ -4049,7 +4036,6 @@ export default {
             if (!propertyId) {
                 return res.status(400).json({ error: 'propertyId is required and must be a number' });
             }
-
             // Step 1: Get unique otherPersonNumbers that appear exactly once
             const uniqueNumbers = await db.BookingHotel.findAll({
                 attributes: ['otherPersonNumber'],

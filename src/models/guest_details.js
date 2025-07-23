@@ -5,14 +5,15 @@ export default (sequelize, DataTypes) => {
         age: DataTypes.INTEGER,
         gender: DataTypes.STRING,
         document_number: DataTypes.STRING,
+        roomNo: DataTypes.STRING,
         document_type: DataTypes.STRING,
         createdAt: DataTypes.DATE
     }, {
-            timestamps: true,
-            paranoid: true,
-        });
-        GuestDetails.associate = function (models) {
-            GuestDetails.belongsTo(models.BookingHotel, {foreignKey: 'id'});
-        };
+        timestamps: true,
+        paranoid: true,
+    });
+    GuestDetails.associate = function (models) {
+        GuestDetails.belongsTo(models.BookingHotel, { foreignKey: 'id' });
+    };
     return GuestDetails;
 };
