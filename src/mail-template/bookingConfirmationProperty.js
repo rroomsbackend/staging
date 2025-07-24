@@ -19,7 +19,7 @@ export default (bookingDetails) => {
         </tr>
         <tr>
             <td style="padding: 20px; text-align: center; background-color: #ff8c00; color: #ffffff;">
-                <h1 style="margin: 0; font-size: 28px;">New Booking Confirmed</h1>                
+                <h1 style="margin: 0; font-size: 28px;">New Booking Created</h1>                
                 <p style="margin: 0; font-size: 18px;">A new booking has been confirmed for your property <strong>${bookingDetails?.hotelName}</strong> on RROOMS</p>
             </td>
         </tr>

@@ -171,7 +171,11 @@ export default (sequelize, DataTypes) => {
         locationId: {
             type: DataTypes.STRING,
             allowNull: true
-        }
+        },
+        AuthCode:{
+            type: DataTypes.STRING,
+            allowNull: true
+        },
     }, {
         timestamps: true,
         paranoid: true

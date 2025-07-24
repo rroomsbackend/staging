@@ -12,6 +12,7 @@ import path from 'path';
 import moment from 'moment-timezone';
 const puppeteer = require('puppeteer');
 import converter from 'number-to-words'
+import axios from "axios";
 import ExcelJS from 'exceljs';
 const { Sequelize } = db;
 const Op = sequelize.Op
@@ -604,6 +605,35 @@ const mealPlanMap = {
 
 const toUpperCase = (value) => (value || "").toUpperCase();
 
+const notifyEzee = async (property, bookingId, status) => {
+    try {
+        const body = {
+            RES_Request: {
+                Request_Type: "BookingRecdNotification",
+                Authentication: {
+                    HotelCode: property.locationId,
+                    AuthCode: property.AuthCode,
+                },
+                Bookings: {
+                    Booking: [
+                        {
+                            BookingId: bookingId,
+                            PMS_BookingId: "1",
+                            Status: status,
+                        },
+                    ],
+                },
+            },
+        };
+        const response = await axios.post("https://live.ipms247.com/pmsinterface/pms_connectivity.php", body, {
+            headers: { "Content-Type": "application/json" }
+        });
+        console.log("✅ Ezee notified");
+    } catch (err) {
+        console.error("❌ Ezee notify failed:", err.response?.data || err.message);
+    }
+};
+
 export default {
     async create(req, res, next) {
         const {
@@ -763,7 +793,8 @@ export default {
                                     otaBookingId, tax: getTax, cuponCode, discountAmount,
                                     bookingPolicy: getProperty?.bookingPolicy,
                                     RoomsCategoryId: propertyRoomsCategoryId,
-                                    paymentModeName
+                                    paymentModeName,
+                                    collectedPayment: collectedPayment
                                 };
                                 await Promise.allSettled([
                                     // sendBookingConfirmationGuest(getUser?.email || 'guest@yopmail.com', bookingDetails),
@@ -791,66 +822,66 @@ export default {
 
     async createByEzee(req, res, next) {
         try {
-            const { data } = req.body;
-            const booking = data.Reservations.Reservation[0].BookingTran[0];
+            const data = req.body;
+            const booking = data?.Reservations?.Reservation[0]?.BookingTran[0];
             const status = booking?.Status;
             const guestEmail = booking?.Email
             console.log(guestEmail);
-            if (!booking || !data.Reservations.Reservation[0]) {
+            if (!booking || !data?.Reservations?.Reservation[0]) {
                 return res.status(400).json({ success: false, message: "Invalid response structure." });
             }
             const property = await db.PropertyMaster.findOne({
-                where: { locationId: data.Reservations.Reservation[0].LocationId },
+                where: { locationId: data?.Reservations?.Reservation[0]?.LocationId },
             });
             if (!property) return res.status(404).json({ success: false, message: "Property not found." });
-            if (status === "New") {
+            if (status == "New") {
                 const bookingCode = "RRO" + Math.floor(100000 + Math.random() * 900000).toString();
                 const payload = {
                     bookingCode: bookingCode,
-                    propertyId: property.id,
-                    locationId: data.Reservations.Reservation[0].LocationId,
+                    propertyId: property?.id,
+                    locationId: data?.Reservations?.Reservation[0]?.LocationId,
                     propertyRoomsCategoryId:
-                        toUpperCase(booking.RoomTypeName) === "STANDARD DOUBLE BED"
+                        toUpperCase(booking?.RoomTypeName) === "STANDARD DOUBLE BED"
                             ? 1
-                            : toUpperCase(booking.RoomTypeName) === "DELUXE DOUBLE BED"
+                            : toUpperCase(booking?.RoomTypeName) === "DELUXE DOUBLE BED"
                                 ? 2
-                                : toUpperCase(booking.RoomTypeName) === "SUITE ROOM"
+                                : toUpperCase(booking?.RoomTypeName) === "SUITE ROOM"
                                     ? 3
-                                    : toUpperCase(booking.RoomTypeName) === "STANDARD SINGLE BED"
+                                    : toUpperCase(booking?.RoomTypeName) === "STANDARD SINGLE BED"
                                         ? 5
-                                        : toUpperCase(booking.RoomTypeName) === "STANDARD TWIN BED"
+                                        : toUpperCase(booking?.RoomTypeName) === "STANDARD TWIN BED"
                                             ? 6
-                                            : toUpperCase(booking.RoomTypeName) === "DELUXE TWIN BED"
+                                            : toUpperCase(booking?.RoomTypeName) === "DELUXE TWIN BED"
                                                 ? 7
                                                 : 1,
-                    fromDate: booking.Start,
-                    toDate: booking.End,
-                    noOfRooms: booking.RentalInfo.length,
-                    adults: booking.RentalInfo[0].Adult,
-                    childrens: booking.RentalInfo[0].Child,
-                    paymentMode: booking.TotalPayment == "" || booking.TotalPayment != "0.00" ? 1 : 0,
-                    PaymentStatus: booking.TotalPayment == "" || booking.TotalPayment != "0.00" ? 1 : 0,
+                    fromDate: booking?.Start,
+                    toDate: booking?.End,
+                    noOfRooms: booking?.RentalInfo.length,
+                    adults: booking?.RentalInfo[0].Adult,
+                    childrens: booking?.RentalInfo[0].Child,
+                    paymentMode: booking?.TotalPayment == "" || booking?.TotalPayment != "0.00" ? 1 : 0,
+                    PaymentStatus: booking?.TotalPayment == "" || booking?.TotalPayment != "0.00" ? 1 : 0,
                     bookingStatus: 1,
-                    bookingAmout: Math.round(booking.TotalAmountAfterTax),
-                    dueAmount: booking.TotalPayment == "" || booking.TotalPayment == "0.00" ? Math.round(booking.TotalAmountAfterTax) : "0",
-                    collectedPayment: booking.TotalPayment == "" || booking.TotalPayment == "0.00" ? "0" : Math.round(booking.TotalPayment),
+                    bookingAmout: Math.round(booking?.TotalAmountAfterTax),
+                    dueAmount: booking?.TotalPayment == "" || booking?.TotalPayment == "0.00" ? Math.round(booking?.TotalAmountAfterTax) : "0",
+                    collectedPayment: booking?.TotalPayment == "" || booking?.TotalPayment == "0.00" ? "0" : Math.round(booking?.TotalPayment),
                     partialPayAmount: 0,
-                    fullPayAmount: booking.TotalPayment == "" || booking.TotalPayment == "0.00" ? "0" : Math.round(booking.TotalPayment),
-                    otherPersonName: data.Reservations.Reservation[0].FirstName + " " + data.Reservations.Reservation[0].LastName,
-                    otherPersonNumber: data.Reservations.Reservation[0].Mobile,
+                    fullPayAmount: booking?.TotalPayment == "" || booking?.TotalPayment == "0.00" ? "0" : Math.round(booking?.TotalPayment),
+                    otherPersonName: data?.Reservations?.Reservation[0]?.FirstName + " " + data?.Reservations?.Reservation[0]?.LastName,
+                    otherPersonNumber: data?.Reservations?.Reservation[0]?.Mobile,
                     source: "RRooms",
                     breakFast:
-                        toUpperCase(booking.PackageName) === "EP"
+                        toUpperCase(booking?.PackageName) === "EP"
                             ? "0"
-                            : toUpperCase(booking.PackageName) === "CP"
+                            : toUpperCase(booking?.PackageName) === "CP"
                                 ? "1"
-                                : toUpperCase(booking.PackageName) === "AP"
+                                : toUpperCase(booking?.PackageName) === "AP"
                                     ? "2"
-                                    : toUpperCase(booking.PackageName) === "MAP"
+                                    : toUpperCase(booking?.PackageName) === "MAP"
                                         ? "3"
                                         : "0",
-                    otaBookingId: data.Reservations.Reservation[0].UniqueID,
-                    referenceName: data.Reservations.Reservation[0].Source,
+                    otaBookingId: data?.Reservations?.Reservation[0]?.UniqueID,
+                    referenceName: data?.Reservations?.Reservation[0]?.Source,
                 };
                 await db.BookingHotel.create(payload);
                 setImmediate(async () => {
@@ -858,7 +889,7 @@ export default {
                         const [getProperty] = await Promise.all([
                             db.PropertyMaster.findOne({ where: { id: payload.propertyId } })
                         ]);
-                        const getInitiator = await db.RroomsUser.findOne({ where: { id: getProperty.createdBy } })
+                        const getInitiator = await db.RroomsUser.findOne({ where: { id: getProperty?.createdBy } })
                         let getTax = parseInt(payload.bookingAmout) ?? 0;
                         let paymentModesForPayAtHotel = [0, 2, 3, 4, 5, 6, 7];
                         let paymentModeName = (payload.PaymentStatus == 0 && payload.paymentMode == 0) || paymentModesForPayAtHotel.includes(payload.paymentMode)
@@ -887,18 +918,19 @@ export default {
                             checkOutTime: moment(payload.toDate).format('DD-MM-YYYY'),
                             bookingAmout: payload.bookingAmout, amountBreakup: `Total: ${payload.bookingAmout}, Collected: ${payload.collectedPayment}, Due: ${payload.dueAmount}`,
                             balanceAmount: payload.dueAmount, paymentLink: 'Payment Link',
-                            checkInDateTime: "12:00 PM", //
-                            checkOutDateTime: "11:00 AM",//
+                            checkInDateTime: "12:00 PM",
+                            checkOutDateTime: "11:00 AM",
                             commissionBreakup: 'Commission Details',
                             paymentMode: payload.paymentMode, noOfRooms: payload.noOfRooms, adults: payload.adults, children: payload.childrens,
                             PaymentStatus: payload.PaymentStatus, bookingStatus: payload.bookingStatus, otherPersonName: payload.otherPersonName, otherPersonNumber: payload.otherPersonNumber,
                             otaBookingId: payload.otaBookingId, tax: getTax, cuponCode: null, discountAmount: null,
                             bookingPolicy: getProperty?.bookingPolicy,
                             RoomsCategoryId: payload.propertyRoomsCategoryId,
-                            paymentModeName
+                            paymentModeName,
+                            collectedPayment: payload.collectedPayment
                         };
                         const specialHotelIds = [9, 11, 5, 40, 12, 8, 42, 41];
-                        const rroomsEmail = specialHotelIds.includes(propertyDetails?.id)
+                        const rroomsEmail = specialHotelIds?.includes(property?.id)
                             ? 'bookinggroup@rrooms.in'
                             : 'rrooms.in@gmail.com';
                         await Promise.allSettled([
@@ -912,63 +944,68 @@ export default {
                         console.error("Email sending error:", err);
                     }
                 });
+                await notifyEzee(property, data?.Reservations?.Reservation[0]?.UniqueID, "New");
                 return res.status(200).json({ success: true, message: "New booking created." });
-            } else if (status === "Modify") {
+            } else if (status == "Modify") {
                 const record = await db.BookingHotel.findOne({
                     where: {
-                        otaBookingId: data.Reservations.Reservation[0].UniqueID,
+                        otaBookingId: data?.Reservations?.Reservation[0]?.UniqueID,
                         // locationId: data.Reservations.Reservation[0].LocationId,
-                        propertyId: property.id
+                        propertyId: property?.id
                     },
                 });
                 if (!record) return res.status(404).json({ success: false, message: "Booking not found to modify." });
                 await record.update({
                     propertyRoomsCategoryId:
-                        toUpperCase(booking.RoomTypeName) === "STANDARD DOUBLE BED"
+                        toUpperCase(booking?.RoomTypeName) === "STANDARD DOUBLE BED"
                             ? 1
-                            : toUpperCase(booking.RoomTypeName) === "DELUXE DOUBLE BED"
+                            : toUpperCase(booking?.RoomTypeName) === "DELUXE DOUBLE BED"
                                 ? 2
-                                : toUpperCase(booking.RoomTypeName) === "SUITE ROOM"
+                                : toUpperCase(booking?.RoomTypeName) === "SUITE ROOM"
                                     ? 3
-                                    : toUpperCase(booking.RoomTypeName) === "STANDARD SINGLE BED"
+                                    : toUpperCase(booking?.RoomTypeName) === "STANDARD SINGLE BED"
                                         ? 5
-                                        : toUpperCase(booking.RoomTypeName) === "STANDARD TWIN BED"
+                                        : toUpperCase(booking?.RoomTypeName) === "STANDARD TWIN BED"
                                             ? 6
-                                            : toUpperCase(booking.RoomTypeName) === "DELUXE TWIN BED"
+                                            : toUpperCase(booking?.RoomTypeName) === "DELUXE TWIN BED"
                                                 ? 7
                                                 : 1,
-                    fromDate: booking.Start,
-                    toDate: booking.End,
-                    noOfRooms: booking.RentalInfo.length,
-                    adults: booking.RentalInfo[0].Adult,
-                    childrens: booking.RentalInfo[0].Child,
-                    bookingAmout: Math.round(booking.TotalAmountAfterTax),
-                    dueAmount: booking.TotalPayment == "" || booking.TotalPayment == "0.00" ? Math.round(booking.TotalAmountAfterTax) : "0",
-                    collectedPayment: booking.TotalPayment == "" || booking.TotalPayment == "0.00" ? "0" : Math.round(booking.TotalPayment),
-                    fullPayAmount: booking.TotalPayment == "" || booking.TotalPayment == "0.00" ? "0" : Math.round(booking.TotalPayment),
-                    otherPersonName: data.Reservations.Reservation[0].FirstName + " " + data.Reservations.Reservation[0].LastName,
-                    otherPersonNumber: data.Reservations.Reservation[0].Mobile,
+                    fromDate: booking?.Start,
+                    toDate: booking?.End,
+                    noOfRooms: booking?.RentalInfo.length,
+                    adults: booking?.RentalInfo[0].Adult,
+                    childrens: booking?.RentalInfo[0].Child,
+                    bookingAmout: Math.round(booking?.TotalAmountAfterTax),
+                    dueAmount: booking?.TotalPayment == "" || booking?.TotalPayment == "0.00" ? Math.round(booking?.TotalAmountAfterTax) : "0",
+                    collectedPayment: booking?.TotalPayment == "" || booking?.TotalPayment == "0.00" ? "0" : Math.round(booking?.TotalPayment),
+                    fullPayAmount: booking?.TotalPayment == "" || booking?.TotalPayment == "0.00" ? "0" : Math.round(booking?.TotalPayment),
+                    otherPersonName: data?.Reservations?.Reservation[0]?.FirstName + " " + data?.Reservations?.Reservation[0]?.LastName,
+                    otherPersonNumber: data?.Reservations?.Reservation[0]?.Mobile,
                     breakFast:
-                        toUpperCase(booking.PackageName) == "EP"
+                        toUpperCase(booking?.PackageName) == "EP"
                             ? "0"
-                            : toUpperCase(booking.PackageName) == "CP"
+                            : toUpperCase(booking?.PackageName) == "CP"
                                 ? "1"
-                                : toUpperCase(booking.PackageName) == "AP"
+                                : toUpperCase(booking?.PackageName) == "AP"
                                     ? "2"
-                                    : toUpperCase(booking.PackageName) == "MAP"
+                                    : toUpperCase(booking?.PackageName) == "MAP"
                                         ? "3"
                                         : "0",
-                }).then(result => res.status(200).json({ success: true, message: "Booking modified." })).catch(err => { console.log(err); return res.status(500).json({ success: false, message: err.message }); })
-            } else if (status === "Cancel") {
+                }).then(async result => {
+                    await notifyEzee(property, data?.Reservations?.Reservation[0]?.UniqueID, "Modify");
+                    res.status(200).json({ success: true, message: "Booking modified." })
+                }).catch(err => { console.log(err); return res.status(500).json({ success: false, message: err.message }); })
+            } else if (status == "Cancel") {
                 const record = await db.BookingHotel.findOne({
                     where: {
-                        otaBookingId: data.Reservations.Reservation[0].UniqueID,
+                        otaBookingId: data?.Reservations?.Reservation[0]?.UniqueID,
                         // locationId: data.Reservations.Reservation[0].LocationId,
-                        propertyId: property.id
+                        propertyId: property?.id
                     },
                 });
                 if (!record) return res.status(404).json({ success: false, message: "Booking not found to cancel." });
                 await record.update({ bookingStatus: 4 });
+                await notifyEzee(property, data?.Reservations?.Reservation[0]?.UniqueID, "Cancel")
                 return res.status(200).json({ success: true, message: "Booking cancelled." });
             } else {
                 return res.status(200).json({ success: false, message: "Unknown status." });
@@ -1189,7 +1226,6 @@ export default {
                         //     mapUrl: `https://www.google.com/maps/place/${propertyDetails.latitude},${propertyDetails.longitude}`,
                         // }
                         // sendMail(mailDetails);
-
                         /////////////////////////////////////////////////////////////////////////
                         if (result?.source == 'RRooms') {
                             setImmediate(async () => {
@@ -1245,7 +1281,8 @@ export default {
                                         discountAmount: result.discountAmount,
                                         bookingPolicy: getProperty?.bookingPolicy,
                                         RoomsCategoryId: result.propertyRoomsCategoryId,
-                                        paymentModeName: paymentModeName
+                                        paymentModeName: paymentModeName,
+                                        collectedPayment: result.collectedPayment
                                     };
                                     await Promise.allSettled([
                                         sendBookingConfirmationGuest(getUser?.email || 'guest@yopmail.com', bookingDetails),
@@ -3891,7 +3928,8 @@ export default {
                         oldBookingId: oldBooking?.id,
                         oldPropertyName: oldBooking?.PropertyMaster?.name,
                         cidAmount: cidAmount,
-                        reasonForShifting: reasonForShifting
+                        reasonForShifting: reasonForShifting,
+                        collectedPayment: oldBooking.collectedPayment
                     };
                     await Promise.allSettled([
                         // sendBookingConfirmationGuest(getUser?.email || 'guest@yopmail.com', bookingDetails),

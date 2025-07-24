@@ -113,7 +113,7 @@ const sendNewPropertyUser = async (propertyName, email, password, firstName, las
 // Function to send booking confirmation email to guest
 const sendBookingConfirmationGuest = async (email, bookingDetails) => {
     try {
-        const subject = `New ${bookingDetails?.paymentModeName} Booking is created – ${bookingDetails.hotelName} - ${bookingDetails.bookingId}`;
+        const subject = `${bookingDetails?.paymentModeName} Booking | ${bookingDetails.hotelName} | ${bookingDetails.bookingId}`;
         const html = bookingConfirmationGuest(bookingDetails);
         await sendMail(email, subject, html);
     } catch (error) {
@@ -125,7 +125,7 @@ const sendBookingConfirmationGuest = async (email, bookingDetails) => {
 const sendBookingConfirmationProperty = async (email, bookingDetails) => {
     try {
         console.log("sendBookingConfirmationProperty - ", email);
-        const subject = `New ${bookingDetails?.paymentModeName} Booking is created – ${bookingDetails.hotelName} - ${bookingDetails.bookingId}`;
+        const subject = `${bookingDetails?.paymentModeName} Booking | ${bookingDetails.hotelName} | ${bookingDetails.bookingId}`;
         const html = bookingConfirmationProperty(bookingDetails);
         await sendMail(email, subject, html);
     } catch (error) {
@@ -136,7 +136,7 @@ const sendBookingConfirmationProperty = async (email, bookingDetails) => {
 // Function to send booking confirmation email to RROOMS
 const sendBookingConfirmationRrooms = async (email, bookingDetails) => {
     try {
-        const subject = `New ${bookingDetails?.paymentModeName} Booking is created – ${bookingDetails.hotelName} - ${bookingDetails.bookingId}`;
+        const subject = `${bookingDetails?.paymentModeName} Booking | ${bookingDetails.hotelName} | ${bookingDetails.bookingId}`;
         const html = bookingConfirmationRrooms(bookingDetails);
         await sendMail(email, subject, html);
     } catch (error) {

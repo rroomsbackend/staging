@@ -116,6 +116,12 @@ export default {
                     } else {
                         console.log("❌ No valid FCM tokens for role = 7");
                     }
+                    const plainOrder = result.get({ plain: true });
+                    io.emit(`new-order-${propertyId}`, {
+                        type: 'NEW_ORDER',
+                        data: { ...plainOrder }
+                    });
+                    console.log(`Emitting socket event new-order-${propertyId}`);
                     return res.status(200).json({ status: true, data: result, message: "Order created successfully" });
                 }).catch(err => {
                     console.log(err);
